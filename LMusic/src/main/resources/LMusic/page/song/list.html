@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="../../plugins/element-ui/index.css" />
+  <link rel="stylesheet" href="../../styles/common.css" />
+  <link rel="stylesheet" href="../../styles/page.css" />
+  <style>
+    #song-app .notAdmin::after {
+      border: 0 !important;
+
+    }
+  </style>
+</head>
+
+<body>
+<div class="dashboard-container" id="song-app">
+  <div class="container">
+    <div class="tableBar">
+      <!-- 搜索 -->
+      <div class="tableRab" style="width: 650px;">
+        <el-input v-model="input" placeholder="请输入歌名" style="width: 300px" clearable
+                  @keyup.enter.native="handleQuery">
+          <i slot="prefix" class="el-input__icon el-icon-search" style="cursor: pointer" @click="handleQuery"></i>
+        </el-input>
+        <el-select v-model="value1" clearable placeholder="请选择类型" style="margin-left: 15px;width: 150px;"
+                   @keyup.enter.native="handleQuery">
+          <el-option v-for="item in options1" :key="item.value" :label="item.label" :value="item.value"></el-option>
+        </el-select>
+        <el-select v-model="value2" clearable placeholder="请选择语言" style="margin-left: 15px;width: 150px;"
+                   @keyup.enter.native="handleQuery">
+          <el-option v-for="item in options2" :key="item.value" :label="item.label" :value="item.value"></el-option>
+        </el-select>
+      </div>
+      <!-- 操作 -->
+      <div class="tableLab">
+        <span class="span-btn delBut non" @click="deleteHandle('批量', null)">批量删除</span>
+        <el-button type="primary" @click="addSongHandle('add')">
+          + 添加歌曲
+        </el-button>
+      </div>
+    </div>
+  </div>
+  <!-- 展示 -->
+  <el-table :data="tableData" stripe class="tableBox" @selection-change="handleSelectionChange">
+    <el-table-column type="selection"></el-table-column>
+    <el-table-column prop="songname" label="歌名"></el-table-column>
+    <el-table-column prop="img" label="封面" align="center">
+      <template slot-scope="{ row }">
+        <el-image style="width: auto; height: 40px; border:none;cursor: pointer;" :src="row.img"
+                  :preview-src-list="[row.img]">
+          <div slot="error" class="image-slot">
+            <img src="./../../img/noImg.png" style="width: auto; height: 40px; border:none;">
+          </div>
+        </el-image>
+      </template>
+    </el-table-column>
+    <el-table-column align="center" prop="singername" label="歌手"></el-table-column>
+    <el-table-column align="center" prop="songtype" label="类型"></el-table-column>
+    <el-table-column align="center" prop="songlanguage" label="语言"></el-table-column>
+    <el-table-column align="center" prop="updateTime" label="最后操作时间"></el-table-column>
+    <!-- 操作 -->
+    <el-table-column label="操作" width="160" align="center">
+      <template slot-scope="scope">
+        <el-button type="text" size="small" class="blueBug" @click="addSongHandle(scope.row.id)"
+                   :class="{notAdmin:user !== 'admin'}">
+          编辑
+        </el-button>
+        <el-button type="text" size="small" class="delBut non" @click="deleteHandle('单删', scope.row.id)">
+          删除
+        </el-button>
+        <el-button type="text" size="small" class="blueBug" @click="musicPlayHandle(scope.row)">
+          {{scope.row.id == id && isPlaying ? '暂停' : '播放'}}
+        </el-button>
+      </template>
+    </el-table-column>
+  </el-table>
+  <!-- 分页 -->
+  <el-pagination class="pageList" :page-sizes="[5, 10, 20, 40, 100]" :page-size="pageSize"
+                 layout="total, sizes, prev, pager, next, jumper" :total="counts" :current-page.sync="page"
+                 @size-change="handleSizeChange" @current-change="handleCurrentChange">
+  </el-pagination>
+  <div ref="player">
+    <audio :src="musicUrl" ref="audio" @ended="onEnd()">
+    </audio>
+  </div>
+</div>
+
+<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+<script src="../../plugins/vue/vue.min.js"></script>
+<!-- 引入组件库 -->
+<script src="../../plugins/element-ui/index.js"></script>
+<!-- 引入axios -->
+<script src="../../plugins/axios/axios.min.js"></script>
+<script src="../../js/request.js"></script>
+<script src="../../api/song.js"></script>
+<script>
+  new Vue({
+    el: '#song-app',
+    data() {
+      return {
+        input: '',
+        value1: '',
+        value2: '',
+        options1: [{
+          value: '流行',
+          label: '流行'
+        }, {
+          value: '摇滚',
+          label: '摇滚'
+        }, {
+          value: '民谣',
+          label: '民谣'
+        }, {
+          value: '电子',
+          label: '电子'
+        }, {
+          value: '舞曲',
+          label: '舞曲'
+        }, {
+          value: '说唱',
+          label: '说唱'
+        }, {
+          value: '轻音乐',
+          label: '轻音乐'
+        }, {
+          value: '爵士',
+          label: '爵士'
+        }, {
+          value: '乡村',
+          label: '乡村'
+        }, {
+          value: 'R&B/Soul',
+          label: 'R&B/Soul'
+        }, {
+          value: '古典',
+          label: '古典'
+        }, {
+          value: '民族',
+          label: '民族'
+        }, {
+          value: '英伦',
+          label: '英伦'
+        }, {
+          value: '金属',
+          label: '金属'
+        }, {
+          value: '朋克',
+          label: '朋克'
+        }, {
+          value: '蓝调',
+          label: '蓝调'
+        }, {
+          value: '雷鬼',
+          label: '雷鬼'
+        }, {
+          value: '世界音乐',
+          label: '世界音乐'
+        }, {
+          value: '拉丁',
+          label: '拉丁'
+        }, {
+          value: 'New Age',
+          label: 'New Age'
+        }, {
+          value: '古风',
+          label: '古风'
+        }, {
+          value: '后摇',
+          label: '后摇'
+        }, {
+          value: 'Bossa Nova',
+          label: 'Bossa Nova'
+        }],
+        options2: [{
+          value: '纯音乐',
+          label: '纯音乐'
+        }, {
+          value: '华语',
+          label: '华语'
+        }, {
+          value: '欧美',
+          label: '欧美'
+        }, {
+          value: '日韩',
+          label: '日韩'
+        }, {
+          value: '粤语',
+          label: '粤语'
+        }],
+        counts: 0,
+        page: 1,
+        pageSize: 10,
+        tableData: [],
+        musicUrl: '',
+        isPlaying: false,
+        id: -1
+      }
+    },
+
+    computed: {},
+
+    created() {
+      this.init()
+      this.user = JSON.parse(localStorage.getItem('employeeInfo')).username
+    },
+    mounted() {},
+
+    methods: {
+      async init() {
+        const params = {
+          page: this.page,
+          pageSize: this.pageSize,
+          songname: this.input ? this.input : undefined,
+          songtype: this.value1 ? this.value1 : undefined,
+          songlanguage: this.value2 ? this.value2 : undefined
+        }
+        await getSongList(params).then(res => {
+          if (String(res.code) === '1') {
+            this.tableData = res.data.records || []
+            this.counts = res.data.total
+          }
+        }).catch(err => {
+          this.$message.error('请求出错了：' + err)
+        })
+      },
+
+      handleQuery() {
+        this.page = 1;
+        this.init();
+      },
+      // 添加
+      addSongHandle(st) {
+        if (st === 'add') {
+          window.parent.menuHandle({
+            id: '3',
+            url: '/LMusic/page/song/add.html',
+            name: '添加歌曲'
+          }, true)
+        } else {
+          window.parent.menuHandle({
+            id: '3',
+            url: '/LMusic/page/song/add.html?id=' + st,
+            name: '修改歌曲'
+          }, true)
+        }
+      },
+
+      // 播放
+      musicPlayHandle(obj){
+        let audioBox = this.$refs.audio
+        if (this.id != obj.id) {
+          this.id = obj.id;
+          audioBox.src = obj.musicurl
+        }
+        if (audioBox.paused) {
+          audioBox.play()
+          this.isPlaying = true
+        } else {
+          audioBox.pause();
+          this.isPlaying = false
+        }
+      },
+
+      // 播放完成
+      onEnd () {
+        this.isPlaying = false
+      },
+
+      // 删除
+      deleteHandle(type, id) {
+        if (type === '批量' && id === null) {
+          if (this.checkList.length === 0) {
+            return this.$message.error('请选择删除对象')
+          }
+        }
+        this.$confirm('确认删除该歌曲, 是否继续?', '确定删除', {
+          'confirmButtonText': '确定',
+          'cancelButtonText': '取消',
+        }).then(() => {
+          deleteSong(type === '批量' ? this.checkList.join(',') : id).then(res => {
+            if (res.code === 1) {
+              this.$message.success('删除成功！')
+              this.handleQuery()
+            } else {
+              this.$message.error(res.msg || '操作失败')
+            }
+          }).catch(err => {
+            this.$message.error('请求出错了：' + err)
+          })
+        })
+      },
+
+      // 全部操作
+      handleSelectionChange(val) {
+        let checkArr = []
+        val.forEach((n) => {
+          checkArr.push(n.id)
+        })
+        this.checkList = checkArr
+      },
+      handleSizeChange(val) {
+        this.pageSize = val
+        this.init()
+      },
+      handleCurrentChange(val) {
+        this.page = val
+        this.init()
+      }
+    }
+  })
+</script>
+</body>
+
+</html>

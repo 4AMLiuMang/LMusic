@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>六芒音乐</title>
+  <link rel="shortcut icon" href="../../favicon.ico">
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="../../plugins/element-ui/index.css" />
+  <link rel="stylesheet" href="../../styles/common.css" />
+  <link rel="stylesheet" href="../../styles/userIndex.css" />
+  <link rel="stylesheet" href="../../plugins/music/index.bundle.css" />
+</head>
+
+<body>
+  <div class="userIndex" id="app">
+    <div class="head">
+      <!-- logo -->
+      <div class="logo">
+        <img src="../../img/login/login-logo.png" alt="" style="width: 200px; height: 120px" />
+      </div>
+      <!-- 搜索 -->
+      <div class="tableRab" style="width: 650px;">
+        <el-input v-model="input" placeholder="请输入歌名" style="width: 300px" clearable @keyup.enter.native="handleQuery">
+          <i slot="prefix" class="el-input__icon el-icon-search" style="cursor: pointer" @click="handleQuery"></i>
+        </el-input>
+        <el-select v-model="value1" clearable placeholder="请选择类型" style="margin-left: 15px;width: 150px;"
+          @keyup.enter.native="handleQuery">
+          <el-option v-for="item in options1" :key="item.value" :label="item.label" :value="item.value"></el-option>
+        </el-select>
+        <el-select v-model="value2" clearable placeholder="请选择语言" style="margin-left: 15px;width: 150px;"
+          @keyup.enter.native="handleQuery">
+          <el-option v-for="item in options2" :key="item.value" :label="item.label" :value="item.value"></el-option>
+        </el-select>
+      </div>
+      <!-- 用户头像 -->
+      <div class="demo-avatar demo-basic avatar">
+        <el-popover class="block" placement="bottom" width="250" trigger="click">
+          <el-avatar slot="reference" shape="circle" size="large" fit="fill" :src="ruleForm.avatar"
+            style="width: 50px;height: 50px;border:none;cursor: pointer;">
+            <div slot="error" class="image-slot">
+              <img src="./../../img/noImg.png" style="width: 50px; height: 50px; border:none;" />
+            </div>
+          </el-avatar>
+          <div class="information">
+            <p>昵称：{{ruleForm.name}}</p>
+            <p>账号：{{ruleForm.username}}</p>
+            <p>性别：{{ruleForm.sex}}</p>
+            <p>手机：{{ruleForm.phone}}</p>
+            <br />
+            <el-button size="medium" type="primary" style="width:46%;" @click="dialogVisible = true">
+              <span>编辑信息</span>
+            </el-button>
+            <el-button size="medium" type="danger" style="width:46%;" @click="logout">
+              <span>退出登录</span>
+            </el-button>
+          </div>
+        </el-popover>
+        <!-- 修改信息框 -->
+        <el-dialog title="信息修改" :visible.sync="dialogVisible" width="30%" :before-close="handleClose">
+          <div class="container">
+            <el-form ref="ruleForm" :model="ruleForm" :rules="rules" :inline="false" label-width="60px"
+              class="demo-ruleForm">
+              <el-form-item label="账号:" prop="username">
+                <el-input v-model="ruleForm.username" placeholder="请输入账号" maxlength="20" :disabled="true" />
+              </el-form-item>
+              <el-form-item label="密码:" prop="password">
+                <el-input v-model="ruleForm.password" placeholder="请输入密码" maxlength="20" :disabled="true"
+                  show-password />
+              </el-form-item>
+              <el-form-item label="头像:" prop="avatar">
+                <el-input type="textarea" :autosize="{ minRows: 1, maxRows: 4}" v-model="ruleForm.avatar"
+                  placeholder="请输入图片链接" maxlength="300" />
+              </el-form-item>
+              <el-form-item label="昵称:" prop="name">
+                <el-input v-model="ruleForm.name" placeholder="请输入昵称" maxlength="20" />
+              </el-form-item>
+              <el-form-item label="手机:" prop="phone">
+                <el-input v-model="ruleForm.phone" placeholder="请输入手机号" maxlength="20" />
+              </el-form-item>
+              <el-form-item label="性别:" prop="sex">
+                <el-radio-group v-model="ruleForm.sex">
+                  <el-radio label="男"></el-radio>
+                  <el-radio label="女"></el-radio>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @keyup.enter.native="submitForm('ruleForm')"
+                  @click.native.prevent="submitForm('ruleForm')">确定修改</el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+        </el-dialog>
+      </div>
+    </div>
+    <!-- 音乐数据 -->
+    <div class="musiclist">
+      <div class="musicboxs">
+        <div v-for="(item,index) in songlist" :key="item.id" class="musicbox">
+          <el-image :src="item.img" fit="cover" class="musicimg" @click="showmusicInfo(item)">
+            <div slot="error" class="image-slot">
+              <img src="./../../img/noImg.png" />
+            </div>
+          </el-image>
+          <div class="musicli">
+          <div class="musicname">
+            <p>{{item.songname}}</p>
+          </div>
+          <div class="musicplay" @click="playmusiclist(item,index)">
+            <img src="../../img/userIndex/play.png" />
+          </div>
+          </div>
+          <!-- 音乐信息框 -->
+          <el-dialog title="歌曲详情" :visible.sync="centerDialogVisible" width="30%">
+            <div><span class="show1">歌曲名称：</span><span class="show2">{{musicObj.songname}}</span></div><br />
+            <div><span class="show1">歌手名称：</span><span class="show2">{{musicObj.singername}}</span></div><br />
+            <div><span class="show1">歌曲类型：</span><span class="show2">{{musicObj.songtype}}</span></div><br />
+            <div><span class="show1">歌曲语言：</span><span class="show2">{{musicObj.songlanguage}}</span></div><br />
+            <div><span class="show1">更新时间：</span><span class="show2">{{musicObj.updateTime}}</span></div>
+            <span slot="footer" class="dialog-footer">
+              <el-button type="primary" @click="centerDialogVisible = false">返 回</el-button>
+            </span>
+          </el-dialog>
+        </div>
+      </div>
+      <!-- 分页查询 -->
+      <el-pagination class="pageList" :page-sizes="[20, 40, 80, 160, 320]" :page-size="pageSize"
+        layout="total, sizes, prev, pager, next, jumper" :total="counts" :current-page.sync="page"
+        @size-change="handleSizeChange" @current-change="handleCurrentChange">
+      </el-pagination>
+      <div class="playerassist"></div>
+    </div>
+  </div>
+</body>
+<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+<script src="../../plugins/vue/vue.min.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script> -->
+<!-- 引入组件库 -->
+<script src="../../plugins/element-ui/index.js"></script>
+<!-- 引入axios -->
+<script src="../../plugins/axios/axios.min.js"></script>
+<!-- 引入歌曲插件 -->
+<script src="../../plugins/music/petite-vue.js"></script>
+<script src="../../plugins/music/index.bundle.js"></script>
+<!-- 背景 -->
+<script src="../../js/background.js"></script>
+<script src="../../js/request.js"></script>
+<script src="../../js/validate.js"></script>
+<script src="../../api/userIndex.js"></script>
+<script>
+  new Vue({
+    el: '#app',
+    data() {
+      return {
+        input: '',
+        value1: '',
+        value2: '',
+        options1: [{ value: '流行', label: '流行' }, { value: '摇滚', label: '摇滚' }, { value: '民谣', label: '民谣' }, { value: '电子', label: '电子' }, { value: '舞曲', label: '舞曲' }, { value: '说唱', label: '说唱' }, { value: '轻音乐', label: '轻音乐' }, { value: '爵士', label: '爵士' }, { value: '乡村', label: '乡村' }, { value: 'R&B/Soul', label: 'R&B/Soul' }, { value: '古典', label: '古典' }, { value: '民族', label: '民族' }, { value: '英伦', label: '英伦' }, { value: '金属', label: '金属' }, { value: '朋克', label: '朋克' }, { value: '蓝调', label: '蓝调' }, { value: '雷鬼', label: '雷鬼' }, { value: '世界音乐', label: '世界音乐' }, { value: '拉丁', label: '拉丁' }, { value: 'New Age', label: 'New Age' }, { value: '古风', label: '古风' }, { value: '后摇', label: '后摇' }, { value: 'Bossa Nova', label: 'Bossa Nova' }], options2: [{ value: '纯音乐', label: '纯音乐' }, { value: '华语', label: '华语' }, { value: '欧美', label: '欧美' }, { value: '日韩', label: '日韩' }, { value: '粤语', label: '粤语' }],
+        counts: 0,
+        page: 1,
+        core: {},
+        pageSize: 20,
+        songlist: [],
+        dialogVisible: false,
+        centerDialogVisible: false,
+        id: '',
+        ruleForm: {
+          name: '',
+          phone: '',
+          sex: '',
+          avatar: '',
+          username: '',
+          password: ''
+        },
+        musicObj: {
+          songname: '',
+          singername: '',
+          songtype: '',
+          songlanguage: ''
+        },
+        musicplay: {
+          id: '',
+          songname: '',
+          img: '',
+          musicurl: ''
+        },
+      }
+    },
+    computed: {
+      rules() {
+        return {
+          //账号
+          username: [{ required: false, 'validator': checkUserName, trigger: 'blur' }],
+          //密码
+          password: [{ required: false, trigger: 'blur' }],
+          //姓名
+          name: [{ required: true, 'validator': checkName, 'trigger': 'blur' }],
+          avatar: [{ required: true, 'validator': checkUrl, 'trigger': 'blur' }],
+          phone: [{ required: true, 'validator': checkPhone, 'trigger': 'blur' }],
+        }
+      }
+    },
+    created() {
+      core = window._PlayerCore
+      this.init1()
+      this.id = JSON.parse(localStorage.getItem('userInfo')).id
+      if (this.id) {
+        this.init2()
+      }
+    },
+    mounted() {
+    },
+
+    methods: {
+      //音乐播放
+      playmusiclist(item, index) {
+        core.PlaySelectSong(core.SongIdList[index])
+      },
+      //异步请求歌曲分页数据
+      async init1() {
+        const params = {
+          page: this.page,
+          pageSize: this.pageSize,
+          songname: this.input ? this.input : undefined,
+          songtype: this.value1 ? this.value1 : undefined,
+          songlanguage: this.value2 ? this.value2 : undefined
+        }
+        await getSongList(params).then(res => {
+          if (String(res.code) === '1') {
+            this.songlist = res.data.records || []
+            this.counts = res.data.total
+            //歌单置空
+            core.SongIdList = [];
+            core.SongIdMap = {};
+            //歌单赋值
+            for (var i = 0; i < this.songlist.length; i++) {
+              core.AppendSong({
+                id: this.songlist[i].id,
+                name: this.songlist[i].songname,
+                src: this.songlist[i].musicurl,
+                img: this.songlist[i].img
+              })
+            }
+          }
+        }).catch(err => {
+          this.$message.error('请求出错了：' + err)
+        })
+      },
+      //异步请求登录用户的数据
+      async init2() {
+        queryUserById(this.id).then(res => {
+          if (String(res.code) === '1') {
+            this.ruleForm = res.data
+            this.ruleForm.sex = res.data.sex === '0' ? '女' : '男'
+          } else {
+            this.$message.error(res.msg || '操作失败')
+          }
+        })
+      },
+      //搜索框，调用init1查询歌曲的数据
+      handleQuery() {
+        this.page = 1;
+        this.init1();
+      },
+      //修改用户的个人信息
+      submitForm(formName, id) {
+        this.$refs[formName].validate((valid) => {
+          if (valid) {
+            const params = {
+              ...this.ruleForm,
+              sex: this.ruleForm.sex === '女' ? '0' : '1'
+            }
+            delete params.updateTime
+            editUser(params).then(res => {
+              if (res.code === 1) {
+                this.$message.success('你的信息修改成功！')
+                this.dialogVisible = false
+              } else {
+                this.$message.error(res.msg || '操作失败')
+              }
+            }).catch(err => {
+              this.$message.error('请求出错了：' + err)
+            })
+          } else {
+            console.log('error submit!!')
+            return false
+          }
+        })
+      },
+      //关闭修改界面
+      handleClose(done) {
+        this.$confirm('确认关闭？')
+          .then(_ => {
+            done();
+          })
+          .catch(_ => { });
+      },
+      //退出
+      logout() {
+        logoutApi().then((res) => {
+          if (res.code === 1) {
+            localStorage.removeItem('userInfo')
+            window.location.href = '/LMusic/page/login/login.html'
+          }
+        })
+      },
+      // 分页操作
+      handleSizeChange(val) {
+        this.pageSize = val
+        this.init1()
+      },
+      handleCurrentChange(val) {
+        this.page = val
+        this.init1()
+      },
+      //显示歌曲信息
+      showmusicInfo(musicstr1) {
+        this.centerDialogVisible = true
+        this.musicObj = musicstr1
+      },
+    }
+  })
+</script>
+
+</html>

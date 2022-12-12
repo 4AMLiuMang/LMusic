@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="../../plugins/element-ui/index.css" />
+  <link rel="stylesheet" href="../../styles/common.css" />
+  <link rel="stylesheet" href="../../styles/page.css" />
+  <style>
+    #user-app .notAdmin::after {
+      border: 0 !important;
+
+    }
+  </style>
+</head>
+
+<body>
+  <div class="dashboard-container" id="user-app">
+    <div class="container">
+      <div class="tableBar">
+        <el-input v-model="input" placeholder="请输入用户账号" style="width: 250px" clearable
+          @keyup.enter.native="handleQuery">
+          <i slot="prefix" class="el-input__icon el-icon-search" style="cursor: pointer" @click="handleQuery"></i>
+        </el-input>
+        <div class="tableLab">
+          <span class="span-btn delBut non" @click="deleteHandle('批量', null)">批量删除</span>
+          <span class="span-btn blueBug non" @click="statusHandle('1')">批量启用</span>
+          <span style="border:none;" class="span-btn delBut non" @click="statusHandle('0')">批量禁用</span>
+        </div>
+      </div>
+    </div>
+    <el-table :data="tableData" stripe class="tableBox" @selection-change="handleSelectionChange">
+      <el-table-column type="selection"></el-table-column>
+      <el-table-column prop="username" label="账号"></el-table-column>
+      <el-table-column align="center" prop="avatar" label="头像" align="center">
+        <template slot-scope="{ row }">
+          <el-image style="width: auto; height: 40px; border:none;cursor: pointer;" :src="row.avatar"
+            :preview-src-list="[row.avatar]">
+            <div slot="error" class="image-slot">
+              <img src="./../../img/noImg.png" style="width: auto; height: 40px; border:none;">
+            </div>
+          </el-image>
+        </template>
+      </el-table-column>
+      <el-table-column align="center" prop="name" label="昵称"></el-table-column>
+      <el-table-column align="center" prop="phone" label="手机号"></el-table-column>
+      <el-table-column align="center" label="账号状态">
+        <template slot-scope="scope">
+          {{ String(scope.row.status) === '0' ? '已禁用' : '正常' }}
+        </template>
+      </el-table-column>
+      <el-table-column align="center" prop="updateTime" label="最后操作时间"></el-table-column>
+      <el-table-column label="操作" width="160" align="center">
+        <template slot-scope="scope">
+          <el-button type="text" size="small" class="blueBug" @click="addUserHandle(scope.row.id)"
+            :class="{notAdmin:user !== 'admin'}">
+            编辑
+          </el-button>
+          <el-button type="text" size="small" class="delBut non" @click="statusHandle(scope.row)">
+            {{ scope.row.status == '1' ? '禁用' : '启用' }}
+          </el-button>
+          <el-button type="text" size="small" class="delBut non" @click="deleteHandle('单删', scope.row.id)">
+            删除
+          </el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+    <el-pagination class="pageList" :page-sizes="[5, 10, 20, 40, 100]" :page-size="pageSize"
+      layout="total, sizes, prev, pager, next, jumper" :total="counts" :current-page.sync="page"
+      @size-change="handleSizeChange" @current-change="handleCurrentChange"></el-pagination>
+  </div>
+  <!-- 开发环境版本，包含了有帮助的命令行警告 -->
+  <script src="../../plugins/vue/vue.min.js"></script>
+  <!-- 引入组件库 -->
+  <script src="../../plugins/element-ui/index.js"></script>
+  <!-- 引入axios -->
+  <script src="../../plugins/axios/axios.min.js"></script>
+  <script src="../../js/request.js"></script>
+  <script src="../../api/user.js"></script>
+  <script>
+    new Vue({
+      el: '#user-app',
+      data() {
+        return {
+          input: '',
+          counts: 0,
+          page: 1,
+          pageSize: 10,
+          tableData: [],
+          id: '',
+          status: '',
+        }
+      },
+      computed: {},
+      created() {
+        this.init()
+        this.user = JSON.parse(localStorage.getItem('employeeInfo')).username
+      },
+      mounted() {
+      },
+      methods: {
+        async init() {
+          const params = {
+            page: this.page,
+            pageSize: this.pageSize,
+            username: this.input ? this.input : undefined
+          }
+          await getUserList(params).then(res => {
+            if (String(res.code) === '1') {
+              this.tableData = res.data.records || []
+              this.counts = res.data.total
+            }
+          }).catch(err => {
+            this.$message.error('请求出错了：' + err)
+          })
+        },
+        handleQuery() {
+          this.page = 1;
+          this.init();
+        },
+        // 添加
+        addUserHandle(st) {
+          window.parent.menuHandle({
+            id: '2',
+            url: '/LMusic/page/user/add.html?id=' + st,
+            name: '修改用户'
+          }, true)
+        },
+
+        // 删除
+        deleteHandle(type, id) {
+          if (type === '批量' && id === null) {
+            if (this.checkList.length === 0) {
+              return this.$message.error('请选择删除对象')
+            }
+          }
+          this.$confirm('确认删除该用户, 是否继续?', '确定删除', {
+            'confirmButtonText': '确定',
+            'cancelButtonText': '取消',
+          }).then(() => {
+            deleteUser(type === '批量' ? this.checkList.join(',') : id).then(res => {
+              if (res.code === 1) {
+                this.$message.success('删除成功！')
+                this.handleQuery()
+              } else {
+                this.$message.error(res.msg || '操作失败')
+              }
+            }).catch(err => {
+              this.$message.error('请求出错了：' + err)
+            })
+          })
+        },
+
+        //状态更改
+        statusHandle(row) {
+          let params = {}
+          if (typeof row === 'string') {
+            if (this.checkList.length === 0) {
+              this.$message.error('批量操作，请先勾选用户后操作！')
+              return false
+            }
+            params.id = this.checkList.join(',')
+            params.status = row
+          } else {
+            params.id = row.id
+            params.status = row.status ? '0' : '1'
+          }
+          this.dishState = params
+          this.$confirm('确认更改该用户状态?', '提示', {
+            'confirmButtonText': '确定',
+            'cancelButtonText': '取消',
+            'type': 'warning'
+          }).then(() => {
+            // 启用禁用---批量启用禁用接口
+            enableOrDisableUser(this.dishState).then(res => {
+              if (res.code === 1) {
+                this.$message.success('用户状态已经更改成功！')
+                this.handleQuery()
+              } else {
+                this.$message.error(res.msg || '操作失败')
+              }
+            }).catch(err => {
+              this.$message.error('请求出错了：' + err)
+            })
+          })
+        },
+
+        // 全部操作
+        handleSelectionChange(val) {
+          let checkArr = []
+          val.forEach((n) => {
+            checkArr.push(n.id)
+          })
+          this.checkList = checkArr
+        },
+        handleSizeChange(val) {
+          this.pageSize = val
+          this.init()
+        },
+        handleCurrentChange(val) {
+          this.page = val
+          this.init()
+        }
+      }
+    })
+  </script>
+</body>
+
+</html>

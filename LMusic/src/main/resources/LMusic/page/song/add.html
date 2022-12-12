@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="../../plugins/element-ui/index.css" />
+  <link rel="stylesheet" href="../../styles/common.css" />
+  <link rel="stylesheet" href="../../styles/page.css" />
+</head>
+
+<body>
+  <div class="addBrand-container" id="song-add-app">
+    <div class="container">
+      <el-form ref="ruleForm" :model="ruleForm" :rules="rules" :inline="false" label-width="180px"
+        class="demo-ruleForm">
+        <el-form-item label="歌名:" prop="songname">
+          <el-input v-model="ruleForm.songname" placeholder="请输入歌名" maxlength="50" />
+        </el-form-item>
+        <el-form-item label="歌手:" prop="singername">
+          <el-input v-model="ruleForm.singername" placeholder="请输入歌手" maxlength="50" />
+        </el-form-item>
+        <el-form-item label="风格:" prop="songtype">
+          <el-select v-model="ruleForm.songtype" clearable placeholder="请选择歌曲风格">
+            <el-option v-for="item in options1" :key="item.value" :label="item.label" :value="item.value"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="语言:" prop="songlanguage">
+          <el-select v-model="ruleForm.songlanguage" clearable placeholder="请选择歌曲语言">
+            <el-option v-for="item in options2" :key="item.value" :label="item.label" :value="item.value"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="封面:" prop="img">
+          <el-input type="textarea" :autosize="{ minRows: 1, maxRows: 4}" v-model="ruleForm.img" placeholder="请输入封面链接"
+            maxlength="300" style="width: 450px;" />
+        </el-form-item>
+        <el-form-item label="歌曲:" prop="musicurl" >
+          <el-input v-model="ruleForm.musicurl" placeholder="请输入歌曲id" maxlength="20" />
+        </el-form-item>
+        <div class="subBox address">
+          <el-form-item>
+            <el-button @click="goBack()">
+              取消
+            </el-button>
+            <el-button type="primary" @click="submitForm('ruleForm', false)">
+              保存
+            </el-button>
+            <el-button v-if="actionType == 'add'" type="primary" class="continue" @click="submitForm('ruleForm', true)">
+              保存并继续添加
+            </el-button>
+          </el-form-item>
+        </div>
+      </el-form>
+    </div>
+  </div>
+  <!-- 开发环境版本，包含了有帮助的命令行警告 -->
+  <script src="../../plugins/vue/vue.min.js"></script>
+  <!-- 引入组件库 -->
+  <script src="../../plugins/element-ui/index.js"></script>
+  <!-- 引入axios -->
+  <script src="../../plugins/axios/axios.min.js"></script>
+  <script src="../../js/request.js"></script>
+  <script src="../../api/song.js"></script>
+  <script src="../../js/validate.js"></script>
+  <script src="../../js/index.js"></script>
+  <script>
+    new Vue({
+      el: '#song-add-app',
+      data() {
+        return {
+          id: '',
+          actionType: '',
+          options1: [{
+            value: '流行',
+            label: '流行'
+          }, {
+            value: '摇滚',
+            label: '摇滚'
+          }, {
+            value: '民谣',
+            label: '民谣'
+          }, {
+            value: '电子',
+            label: '电子'
+          }, {
+            value: '舞曲',
+            label: '舞曲'
+          }, {
+            value: '说唱',
+            label: '说唱'
+          }, {
+            value: '轻音乐',
+            label: '轻音乐'
+          }, {
+            value: '爵士',
+            label: '爵士'
+          }, {
+            value: '乡村',
+            label: '乡村'
+          }, {
+            value: 'R&B/Soul',
+            label: 'R&B/Soul'
+          }, {
+            value: '古典',
+            label: '古典'
+          }, {
+            value: '民族',
+            label: '民族'
+          }, {
+            value: '英伦',
+            label: '英伦'
+          }, {
+            value: '金属',
+            label: '金属'
+          }, {
+            value: '朋克',
+            label: '朋克'
+          }, {
+            value: '蓝调',
+            label: '蓝调'
+          }, {
+            value: '雷鬼',
+            label: '雷鬼'
+          }, {
+            value: '世界音乐',
+            label: '世界音乐'
+          }, {
+            value: '拉丁',
+            label: '拉丁'
+          }, {
+            value: 'New Age',
+            label: 'New Age'
+          }, {
+            value: '古风',
+            label: '古风'
+          }, {
+            value: '后摇',
+            label: '后摇'
+          }, {
+            value: 'Bossa Nova',
+            label: 'Bossa Nova'
+          }],
+          options2: [{
+            value: '纯音乐',
+            label: '纯音乐'
+          }, {
+            value: '华语',
+            label: '华语'
+          }, {
+            value: '欧美',
+            label: '欧美'
+          }, {
+            value: '日韩',
+            label: '日韩'
+          }, {
+            value: '粤语',
+            label: '粤语'
+          }],
+          ruleForm: {
+            songname: '',
+            singername: '',
+            songtype: '',
+            songlanguage: '',
+            img: '',
+            musicurl: '',
+          }
+        }
+      },
+      computed: {
+        rules() {
+          return {
+            songname: [{ required: true, trigger: 'blur' }],
+            singername: [{ required: true, trigger: 'blur' }],
+            songtype: [{ required: true, trigger: 'blur' }],
+            songlanguage: [{ required: true, trigger: 'blur' }],
+            img: [{ required: true, 'validator': checkUrl, 'trigger': 'blur' }],
+            musicurl: [{ required: true, 'trigger': 'blur' }],
+          }
+        }
+      },
+      created() {
+        this.id = requestUrlParam('id')
+        this.actionType = this.id ? 'edit' : 'add'
+        if (this.id) {
+          this.init()
+        }
+      },
+      mounted() {
+      },
+      methods: {
+        async init() {
+          querySongById(this.id).then(res => {
+            console.log(res)
+            if (String(res.code) === '1') {
+              console.log(res.data)
+              this.ruleForm = res.data
+              //取歌曲id
+              let musicUrl = res.data.musicurl
+              const startIndex = musicUrl.indexOf("=")
+              const endIndex = musicUrl.lastIndexOf(".")
+              musicUrl = musicUrl.substring(startIndex + 1, endIndex)
+              console.log(musicUrl)
+              this.ruleForm.musicurl = musicUrl
+            } else {
+              this.$message.error(res.msg || '操作失败')
+            }
+          })
+        },
+
+        submitForm(formName, st) {
+          this.$refs[formName].validate((valid) => {
+            if (valid) {
+              if (this.actionType === 'add') {
+                const params = {
+                  ...this.ruleForm,
+                }
+                addSong(params).then(res => {
+                  if (res.code === 1) {
+                    this.$message.success('歌曲添加成功！')
+                    if (!st) {
+                      this.goBack()
+                    } else {
+                      this.ruleForm = {
+                        songname: '',
+                        singername: '',
+                        songtype: '',
+                        songlanguage: '',
+                        img: '',
+                        musicurl: '',
+                      }
+                    }
+                  } else {
+                    this.$message.error(res.msg || '操作失败')
+                  }
+                }).catch(err => {
+                  this.$message.error('请求出错了：' + err)
+                })
+              } else {
+                const params = {
+                  ...this.ruleForm,
+                }
+                editSong(params).then(res => {
+                  if (res.code === 1) {
+                    this.$message.success('歌曲信息修改成功！')
+                    this.goBack()
+                  } else {
+                    this.$message.error(res.msg || '操作失败')
+                  }
+                }).catch(err => {
+                  this.$message.error('请求出错了：' + err)
+                })
+              }
+            } else {
+              console.log('error submit!!')
+              return false
+            }
+          })
+        },
+
+        goBack() {
+          window.parent.menuHandle({
+            id: '3',
+            url: '/LMusic/page/song/list.html',
+            name: '歌曲管理'
+          }, false)
+        }
+      }
+    })
+  </script>
+</body>
+
+</html>
